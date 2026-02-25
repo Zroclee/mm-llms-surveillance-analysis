@@ -15,6 +15,8 @@
 mkdir server
 python3 -m venv .venv
 source .venv/bin/activate
+
+
 # 直接安装 FastAPI 及所有可选依赖
 pip install "fastapi[all]"
 # LangChain
@@ -24,6 +26,11 @@ pip install -U langgraph
 
 # 将依赖库保存
 pip freeze > requirements.txt
+
+# 后续项目启动
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
 # 前端初始化
 pnpm create vite@latest

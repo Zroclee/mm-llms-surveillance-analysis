@@ -7,6 +7,10 @@ load_dotenv()
 
 app = FastAPI()
 
+from router import agent
+app.include_router(agent.router)
+
+
 # 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
