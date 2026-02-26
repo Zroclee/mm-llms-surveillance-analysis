@@ -22,9 +22,9 @@
 				</div>
 
 				<div class="card house-card" @click="navigateTo('/house')">
-					<h2>房源管理</h2>
-					<p>管理房源信息与相关数据</p>
-					<button class="nav-btn">进入房源页</button>
+					<h2>建筑管理</h2>
+					<p>管理建筑信息与相关数据</p>
+					<button class="nav-btn">进入建筑页</button>
 				</div>
 			</div>
 		</main>
