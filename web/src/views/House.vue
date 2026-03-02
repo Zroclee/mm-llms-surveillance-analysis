@@ -27,6 +27,7 @@
           autoplay 
           muted 
           loop 
+          playbackRate="0.5"
           playsinline
           controls
         >
@@ -57,6 +58,22 @@
           >
             <div class="frame-img-wrapper">
               <img :src="frame.url" :alt="frame.time" />
+              <!-- 上传状态指示器 -->
+              <div v-if="frame.status" class="status-badge" :class="frame.status">
+                <span v-if="frame.status === 'uploading'" class="status-icon loading">↻</span>
+                <span v-else-if="frame.status === 'success'" class="status-icon success">✓</span>
+                <span v-else-if="frame.status === 'error'" class="status-icon error">!</span>
+              </div>
+              
+              <!-- 悬浮操作层 -->
+              <div class="frame-hover-overlay">
+                <button class="hover-btn left" @click.stop="setBaseline(frame)" title="设为基准">
+                  <span class="btn-icon">⚓</span>
+                </button>
+                <button class="hover-btn right" @click.stop="setCurrentAnalysis(frame)" title="AI 分析">
+                  <span class="btn-icon">🧠</span>
+                </button>
+              </div>
             </div>
             <span class="frame-time">{{ frame.time }}</span>
           </div>
@@ -76,12 +93,18 @@
           <h3 class="section-title">画面对比</h3>
           <div class="comparison-view">
             <div class="comp-img">
-              <div class="img-placeholder baseline">基准图</div>
-              <span class="img-label">基准画面</span>
+              <div v-if="baselineFrame" class="img-content">
+                <img :src="baselineFrame.url" :alt="baselineFrame.time" />
+              </div>
+              <div v-else class="img-placeholder baseline">基准图</div>
+              <span class="img-label">基准图</span>
             </div>
             <div class="comp-img">
-              <div class="img-placeholder current">实时</div>
-              <span class="img-label">当前画面</span>
+              <div v-if="currentAnalysisFrame" class="img-content">
+                <img :src="currentAnalysisFrame.url" :alt="currentAnalysisFrame.time" />
+              </div>
+              <div v-else class="img-placeholder current">实时</div>
+              <span class="img-label">目标图</span>
             </div>
           </div>
         </section>
@@ -156,10 +179,25 @@ interface HistoryFrame {
   time: string;
   url: string;
   serverPath?: string;
+  status?: 'uploading' | 'success' | 'error';
 }
 
 // 模拟历史抽帧数据
 const historyFrames = ref<HistoryFrame[]>([]);
+
+// 基准图和当前分析图状态
+const baselineFrame = ref<HistoryFrame | null>(null);
+const currentAnalysisFrame = ref<HistoryFrame | null>(null);
+
+// 设为基准图
+const setBaseline = (frame: HistoryFrame) => {
+  baselineFrame.value = frame;
+};
+
+// 设为 AI 分析画面
+const setCurrentAnalysis = (frame: HistoryFrame) => {
+  currentAnalysisFrame.value = frame;
+};
 
 // 视频截图功能
 const captureFrame = () => {
@@ -186,12 +224,15 @@ const captureFrame = () => {
   // 创建新记录对象
   const newFrame: HistoryFrame = {
     time: timeString,
-    url: imageUrl
+    url: imageUrl,
+    status: 'uploading'
   };
 
   // 添加到历史记录头部
   historyFrames.value.unshift(newFrame);
-  
+  const activeFrame = historyFrames.value[0];
+  if (!activeFrame) return;
+
   // 选中最新添加的帧
   currentFrameIndex.value = 0;
 
@@ -213,12 +254,15 @@ const captureFrame = () => {
       if (response.ok) {
         const data = await response.json();
         // 更新服务端保存路径
-        newFrame.serverPath = data.saved_path;
+        activeFrame.serverPath = data.saved_path;
+        activeFrame.status = 'success';
         console.log('Image uploaded successfully:', data.saved_path);
       } else {
+        activeFrame.status = 'error';
         console.error('Failed to upload image:', response.statusText);
       }
     } catch (error) {
+      activeFrame.status = 'error';
       console.error('Error uploading image:', error);
     }
   }, 'image/jpeg');
@@ -481,12 +525,55 @@ const startAnalysis = async () => {
 }
 
 .frame-img-wrapper {
+  position: relative;
   width: 100%;
   height: 90px;
   border: 2px solid transparent;
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 6px;
+}
+
+.status-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.status-icon {
+  display: inline-block;
+  line-height: 1;
+}
+
+.status-badge.uploading {
+  color: #fbbf24; /* Amber 400 */
+}
+
+.status-badge.success {
+  color: #4ade80; /* Green 400 */
+}
+
+.status-badge.error {
+  color: #f87171; /* Red 400 */
+}
+
+.status-icon.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .frame-img-wrapper img {
@@ -551,22 +638,92 @@ const startAnalysis = async () => {
   gap: 12px;
 }
 
+.frame-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.frame-img-wrapper:hover .frame-hover-overlay {
+  opacity: 1;
+}
+
+.hover-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.hover-btn:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  transform: scale(1.1);
+}
+
+.btn-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.img-content {
+  width: 100%;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  
+}
+
+.img-content img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .comp-img {
+  position: relative;
   flex: 1;
+  /* 移除背景色和边框圆角，由内部元素控制 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 移除 aspect-ratio，让内容决定高度，或者保留并在内部处理 */
+  min-width: 0; /* 防止 flex 子项溢出 */
+  box-sizing: border-box; /* 确保边框计算在宽度内 */
 }
 
 .img-placeholder {
   width: 100%;
   aspect-ratio: 16/9;
   background-color: #1e293b;
-  border-radius: 6px;
+  border-radius: 4px; /* 统一圆角 */
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   color: #64748b;
-  margin-bottom: 6px;
-  border: 1px solid #334155;
+  border: 1px dashed #475569; /* 改为虚线边框以示区别，并加深颜色 */
+  box-sizing: border-box; /* 确保边框计算在宽度内 */
 }
 
 .img-placeholder.current {
