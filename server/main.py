@@ -2,13 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 
 app = FastAPI()
 
-from router import agent
+from router import agent, files
+
 app.include_router(agent.router)
+app.include_router(files.router)
 
 
 # 添加CORS中间件
@@ -20,10 +23,13 @@ app.add_middleware(
     allow_headers=["*"],  # 允许所有请求头
 )
 
+
 @app.get("/")
 async def root():
     return "Hello, World!"
 
-import uvicorn 
+
+import uvicorn
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="localhost", port=8000, reload=True)
