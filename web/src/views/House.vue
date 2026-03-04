@@ -7,7 +7,7 @@
         <div class="header-left">
           <h1 class="monitor-title">实时分析监控</h1>
           <span class="monitor-status">● 录制中 · 4K</span>
-          <span class="monitor-location">天健天骄 · 东南</span>
+          <span class="monitor-location">天健天骄 · 西侧</span>
         </div>
         <div class="header-right">
           <select v-model="selectedCamera" class="camera-select">
@@ -111,12 +111,12 @@
 
         <!-- 建筑说明 -->
         <section class="analysis-section">
-          <h3 class="section-title">分析范围 / 建筑说明</h3>
+          <h3 class="section-title">建筑说明</h3>
           <textarea 
             v-model="buildingDescription" 
             class="description-input" 
             placeholder="输入建筑背景和介绍帮助 AI 理解..."
-            rows="3"
+            rows="2"
           ></textarea>
         </section>
 
@@ -134,19 +134,7 @@
 
         <!-- 分析结果 -->
         <section class="analysis-result-section" v-if="analysisResult || isAnalyzing">
-          <h3 class="section-title">分析结果 (98% 置信度)</h3>
           
-          <!-- 进度环 (Mock UI) -->
-          <div class="progress-card">
-            <div class="progress-circle">
-              <span class="progress-value">75%</span>
-            </div>
-            <div class="progress-info">
-              <h4>04 区进度</h4>
-              <p>+12% 较上次分析</p>
-            </div>
-          </div>
-
           <!-- Markdown 流式输出 -->
           <div class="markdown-output">
             <div v-if="!analysisResult && isAnalyzing" class="typing-indicator">
@@ -166,10 +154,29 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import MarkdownIt from 'markdown-it';
+
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true
+});
 
 // 状态定义
 const selectedCamera = ref('cam1');
-const buildingDescription = ref('结构完整性与混凝土浇筑');
+const buildingDescription = ref(`【项目概况】
+项目名称：深圳天健天骄北庐
+监控视角：西侧视角（由西向东拍摄）
+
+【建筑布局】（画面从左至右）
+1. D座：45层（最左侧，遮挡后方C座）
+2. B座：46层，总高148米
+3. A座：46层，总高148米（层高3.15米）
+4. E座：44层，总高141.7米
+5. C座：44层，总高141.7米（位于D座后方被遮挡）
+
+【注意事项】
+画面最右侧边缘出现的其他建筑不属于本项目分析范围，请忽略。`);
 const isAnalyzing = ref(false);
 const analysisResult = ref('');
 const currentFrameIndex = ref(0);
@@ -179,6 +186,7 @@ interface HistoryFrame {
   time: string;
   url: string;
   serverPath?: string;
+  filename?: string;
   status?: 'uploading' | 'success' | 'error';
 }
 
@@ -221,11 +229,14 @@ const captureFrame = () => {
   const now = new Date();
   const timeString = `今日 ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   
+  const filename = `capture_${Date.now()}.jpg`;
+
   // 创建新记录对象
   const newFrame: HistoryFrame = {
     time: timeString,
     url: imageUrl,
-    status: 'uploading'
+    status: 'uploading',
+    filename: filename
   };
 
   // 添加到历史记录头部
@@ -241,7 +252,6 @@ const captureFrame = () => {
     if (!blob) return;
 
     const formData = new FormData();
-    const filename = `capture_${Date.now()}.jpg`;
     formData.append('file', blob, filename);
 
     try {
@@ -268,35 +278,90 @@ const captureFrame = () => {
   }, 'image/jpeg');
 };
 
-// 模拟 Markdown 解析 (简单换行处理)
+// 使用 MarkdownIt 解析
 const formattedResult = computed(() => {
-  return analysisResult.value.replace(/\n/g, '<br>');
+  return md.render(analysisResult.value);
 });
 
-// 模拟流式分析
+// 流式分析
 const startAnalysis = async () => {
   if (isAnalyzing.value) return;
   
+  if (!baselineFrame.value || !currentAnalysisFrame.value) {
+    alert('请先选择基准图和目标图');
+    return;
+  }
+
   isAnalyzing.value = true;
   analysisResult.value = '';
   
-  const mockResponse = `
-    <strong>检测</strong><br>
-    Section B-12 钢筋绑扎完成。<br><br>
-    <strong>活动</strong><br>
-    混凝土浇筑开始。当前体积：14.5m³<br><br>
-    <strong>合规性</strong><br>
-    在西北角检测到非标准脚手架搭建。
-  `;
+  try {
+    const response = await fetch('http://localhost:8000/agent/building/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        basic_image_name: baselineFrame.value.filename,
+        comparison_image_name: currentAnalysisFrame.value.filename,
+        description: buildingDescription.value,
+      }),
+    });
 
-  // 模拟逐字输出
-  const chars = mockResponse.split('');
-  for (let i = 0; i < chars.length; i++) {
-    await new Promise(resolve => setTimeout(resolve, 30));
-    analysisResult.value += chars[i];
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        analysisResult.value = `Error: ${response.status} ${response.statusText}\n${errorData.detail || ''}`;
+        isAnalyzing.value = false;
+        return;
+    }
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let hasReasoning = false;
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr.trim() === '[DONE]') continue;
+            
+            try {
+              const data = JSON.parse(dataStr);
+              
+              if (data.reasoning) {
+                  if (!hasReasoning) {
+                      analysisResult.value += '**Thinking Process:**\n';
+                      hasReasoning = true;
+                  }
+                  analysisResult.value += data.reasoning;
+              }
+              
+              if (data.content) {
+                  if (hasReasoning) {
+                      analysisResult.value += '\n\n**Final Answer:**\n';
+                      hasReasoning = false;
+                  }
+                  analysisResult.value += data.content;
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    analysisResult.value = `Request failed: ${error}`;
+  } finally {
+    isAnalyzing.value = false;
   }
-  
-  isAnalyzing.value = false;
 };
 </script>
 
@@ -597,7 +662,7 @@ const startAnalysis = async () => {
 }
 
 .sidebar-header {
-  padding: 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid #1e293b;
 }
 
@@ -617,18 +682,21 @@ const startAnalysis = async () => {
 
 .sidebar-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 20px;
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .analysis-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .section-title {
   font-size: 13px;
   color: #94a3b8;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-weight: 500;
 }
 
@@ -769,7 +837,12 @@ const startAnalysis = async () => {
 
 .description-input {
   resize: vertical;
-  min-height: 80px;
+  min-height: 60px;
+}
+
+.action-area {
+  flex-shrink: 0;
+  margin-bottom: 12px;
 }
 
 /* 按钮 */
@@ -802,8 +875,13 @@ const startAnalysis = async () => {
 .analysis-result-section {
   background-color: #1e293b;
   border-radius: 8px;
-  padding: 16px;
-  margin-top: 24px;
+  padding: 12px;
+  margin-top: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .progress-card {
@@ -846,6 +924,8 @@ const startAnalysis = async () => {
   color: #cbd5e1;
   border-top: 1px solid #334155;
   padding-top: 12px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .typing-indicator {

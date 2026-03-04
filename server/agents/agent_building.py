@@ -16,21 +16,26 @@ model = ChatOpenAI(
 class MessagesState(TypedDict):
     basic_image: str
     comparison_image: str
+    description: str
 
 
 def vl_llm_node(state: MessagesState):
     """
     调用千文视觉理解大模型
     """
-    response = model.invoke(
+    context_info = ""
+    if state.get("description"):
+        context_info = f"\n\n### 项目背景与建筑信息：\n{state['description']}\n"
+
+    response = model.stream(
         [
             SystemMessage(
-                content="""你是一位经验丰富的房地产贷款放款经理和建筑工程监理专家。你的职责是根据建筑工地的图片来评估施工进度，以决定是否符合放款条件。
+                content=f"""你是一位经验丰富的房地产贷款放款经理和建筑工程监理专家。你的职责是根据建筑工地的图片来评估施工进度，以决定是否符合放款条件。
 
 你将收到两张图片：
 1. 第一张图是【基准图】：可能是项目早期的状态、上一个周期的进度图或项目规划图，作为参考基准。
 2. 第二张图是【事实图】：当前最新的建筑工地现场拍摄图。
-
+{context_info}
 请根据这两张图片，完成以下分析并生成一份专业的《建筑进度监察与放款评估报告》。
 
 ### 分析维度：
@@ -95,33 +100,3 @@ def vl_llm_node(state: MessagesState):
     return response
 
 
-# # 定义状态
-# from typing_extensions import TypedDict
-# from pydantic import BaseModel, Field
-# class MessagesState(TypedDict):
-#     basic_image: str
-#     comparison_image: str
-#     vl_llm_res: str
-#     anomaly_type: AnomalyType = Field(description="异常类型")
-#     risk_level: RiskLevel = Field(description="风险等级")
-#     final_result: str = Field(description="最终判断结果")
-#     recommendations: str = Field(description="建议采取的措施")
-
-# # 定义节点
-# def model_call_node(state: MessagesState) -> MessagesState:
-#     """
-#     调用大模型
-#     """
-#     # 调用大模型
-#     response = model.invoke(state["messages"])
-#     # 更新状态
-#     state["messages"].append(response)
-#     return state
-
-
-# # 定义图
-# from langgraph.graph import StateGraph, START, END
-
-# graph = StateGraph(MessagesState)
-
-# agent = graph.compile()
