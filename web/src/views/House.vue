@@ -205,7 +205,7 @@
       </div>
 
       <div class="sidebar-footer">
-        <button class="report-btn">📄 生成进度报告</button>
+        <button class="report-btn" @click="generateReport">📄 生成进度报告</button>
       </div>
     </div>
   </div>
@@ -214,6 +214,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import MarkdownIt from "markdown-it";
+// @ts-ignore
+import html2pdf from "html2pdf.js";
 
 const md = new MarkdownIt({
   html: true,
@@ -475,8 +477,28 @@ const captureFrame = () => {
 
 // 使用 MarkdownIt 解析
 const formattedResult = computed(() => {
+  if (!analysisResult.value) return "";
   return md.render(analysisResult.value);
 });
+
+// 生成 PDF 报告
+const generateReport = () => {
+  const element = document.querySelector('.markdown-content');
+  if (!element || !analysisResult.value) {
+    alert('暂无分析结果可生成报告');
+    return;
+  }
+  
+  const opt: any = {
+    margin:       10,
+    filename:     `进度报告_${new Date().toISOString().slice(0,10)}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element as HTMLElement).save();
+};
 
 // 流式分析
 const startAnalysis = async () => {

@@ -1,5 +1,6 @@
 # 大模型
 from langchain_openai import ChatOpenAI
+import os
 
 qwen_model = ChatOpenAI(
     model="qwen3.5-plus",
