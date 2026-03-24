@@ -41,7 +41,9 @@ markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
 multidict==6.7.1
+numpy==2.4.3
 openai==2.24.0
+opencv-python==4.13.0.92
 orjson==3.11.7
 ormsgpack==1.12.2
 packaging==26.0
