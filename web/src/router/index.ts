@@ -28,6 +28,14 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       title: '房源'
     }
+  },
+  {
+    path: '/building',
+    name: 'Building',
+    component: () => import('../views/Building.vue'),
+    meta: {
+      title: '建筑大屏'
+    }
   }
 ]
 

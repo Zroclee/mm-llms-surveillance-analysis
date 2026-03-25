@@ -26,6 +26,12 @@
 					<p>管理建筑信息与相关数据</p>
 					<button class="nav-btn">进入建筑页</button>
 				</div>
+
+				<div class="card building-card" @click="navigateTo('/building')">
+					<h2>建筑大屏</h2>
+					<p>查看建筑三维地图与实时监控数据</p>
+					<button class="nav-btn">进入建筑大屏</button>
+				</div>
 			</div>
 		</main>
 	</div>
