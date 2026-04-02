@@ -1,7 +1,7 @@
 <template>
   <div class="map-wrapper">
     <div id="map-container"></div>
-    <button class="start-btn" @click="startAnimation">开始动画</button>
+    <!-- <button class="start-btn" @click="startAnimation">开始动画</button> -->
     <button class="tour-btn" @click="startTour">标点巡游</button>
   </div>
 </template>
@@ -9,39 +9,18 @@
 import { onMounted, onUnmounted } from 'vue'
 import AMapLoader from '@amap/amap-jsapi-loader'
 
+const props = defineProps<{
+  markerData: any
+}>()
 
 let map:any = null;
 let loca:any = null;
 let pl:any = null;
 
-const markerData = { 
-    "type": "FeatureCollection", 
-    "features": [
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.59008979797363,39.90058428630659]},"properties":{"name":"远洋一方润园","price":65000,"count":92}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.59378051757811,39.89704498575387]},"properties":{"name":"远洋一方溪语苑","price":65000,"count":52}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.59366250038148,39.90657598772839]},"properties":{"name":"东会新村","price":49000,"count":53}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.60161256790161,39.91717540663561]},"properties":{"name":"北京新天地（东区）","price":62000,"count":639}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.59092664718628,39.913423004886894]},"properties":{"name":"京通苑阳光华苑","price":48000,"count":651}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.59223556518555,39.92263906258135]},"properties":{"name":"龙湖长楹天街","price":76000,"count":12}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.58066987991333,39.92166814352715]},"properties":{"name":"柏林爱乐","price":62000,"count":471}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.5806484222412,39.91766912840225]},"properties":{"name":"汇鸿家园","price":58000,"count":65}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.5688467025757,39.91737289576941]},"properties":{"name":"三间房南里","price":53000,"count":45}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.57416820526123,39.9034814381334]},"properties":{"name":"康惠园三号院","price":48000,"count":95}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.60126924514769,39.89893812274133]},"properties":{"name":"东一时区小区","price":54000,"count":199}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.60905838012695,39.90331683051646]},"properties":{"name":"八里桥南院","price":44000,"count":2}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.62437915802002,39.9101312551376]},"properties":{"name":"西马庄园","price":36000,"count":102}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.60266399383545,39.929747745342944]},"properties":{"name":"保利嘉园1号院","price":53000,"count":125}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.56524181365967,39.92691752490338]},"properties":{"name":"朝青知筑","price":80000,"count":36}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.54335498809814,39.903678966751734]},"properties":{"name":"北花园小区1号院","price":50000,"count":2}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.54949188232422,39.921421297504764]},"properties":{"name":"瑞和国际","price":49000,"count":74}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[116.63712501525877,39.92444921388591]},"properties":{"name":"天赐良园（东区）","price":49000,"count":51}}
-    ] 
-};
-
 const startTour = () => {
   if (!loca || !map) return;
   
-  const features = markerData.features;
+  const features = props.markerData.features;
   if (features.length === 0) return;
 
   const firstPoint = features[0]?.geometry?.coordinates;
@@ -56,7 +35,7 @@ const startTour = () => {
     loca.animate.start();
     
     // 构建中间标点巡游的动画帧
-    const tourAnimates = features.map((feat, i) => {
+    const tourAnimates = features.map((feat: any, i: number) => {
        const currentCoord = feat.geometry?.coordinates;
        const prevCoord = i === 0 ? currentCoord : features[i - 1]?.geometry?.coordinates;
        
@@ -134,126 +113,144 @@ const startTour = () => {
   }, 500); 
 };
 
-const startAnimation = () => {
-  if (loca && pl) {
-    loca.animate.start();
-    animate();
+// const startAnimation = () => {
+//   if (loca && pl) {
+//     loca.animate.start();
+//     animate();
+//   }
+// };
+
+const focusOnBuilding = (coordinates: number[]) => {
+  if (!map || !loca) return;
+  
+  // 中断当前所有的动画
+  if (loca.viewControl) {
+    loca.viewControl.clearAnimates();
   }
+  
+  // 定位到对应的建筑标点
+  map.setCenter(coordinates, true);
+  map.setZoom(16.5, true);
+  map.setPitch(45, true);
 };
 
-function animate() {
-  var speed = 1;
-  // 镜头动画 
-  map.setZoom(11.8, true);
-  map.setPitch(0, true);
-  map.setCenter([121.304018, 31.217688], true);
-  map.setRotation(1, true);
-  pl.hide(1000);
+defineExpose({
+  focusOnBuilding
+})
 
-  // 下钻 
-  loca.viewControl.addAnimates([{
-    pitch: {
-      value: 0,
-      control: [[0, 20], [1, 0]],
-      timing: [0, 0, 0.8, 1],
-      duration: 3000 / speed,
-    },
-    zoom: {
-      value: 15.9,
-      control: [[0, 12.8], [1, 15.9]],
-      timing: [0, 0, 0.8, 1],
-      duration: 3000 / speed,
-    },
-    rotation: {
-      value: -20,
-      control: [[0, 20], [1, -20]],
-      timing: [0, 0, 0.8, 1],
-      duration: 2000 / speed,
-    },
-  }], function () {
-    setTimeout(function () {
-      pl.show(2000);
-    }, 3000);
+// function animate() {
+//   var speed = 1;
+//   // 镜头动画 
+//   map.setZoom(11.8, true);
+//   map.setPitch(0, true);
+//   map.setCenter([121.304018, 31.217688], true);
+//   map.setRotation(1, true);
+//   pl.hide(1000);
 
-    loca.viewControl.addAnimates([
-      // 寻迹 
-      {
-        center: {
-          value: [121.500419, 31.238089],
-          control: [[121.424503326416, 31.199146851153124], [121.46656036376952, 31.245828642661486]],
-          timing: [0.3, 0, 0.1, 1],
-          duration: 8000 / speed,
-        },
-        zoom: {
-          value: 17,
-          control: [[0.3, 15], [1, 17]],
-          timing: [0.3, 0, 0.7, 1],
-          duration: 4000 / speed,
-        },
-        pitch: {
-          value: 50,
-          control: [[0.3, 0], [1, 50]],
-          timing: [0.3, 0, 1, 1],
-          duration: 3000 / speed,
-        },
-        rotation: {
-          value: -80,
-          control: [[0, -20], [1, -80]],
-          timing: [0, 0, 1, 1],
-          duration: 1000 / speed,
-        },
-      }, {
-        // 环绕 
-        pitch: {
-          value: 50,
-          control: [[0, 40], [1, 50]],
-          timing: [0.3, 0, 1, 1],
-          duration: 7000 / speed,
-        },
-        rotation: {
-          value: 260,
-          control: [[0, -80], [1, 260]],
-          timing: [0, 0, 0.7, 1],
-          duration: 7000 / speed,
-        },
-        zoom: {
-          value: 17,
-          control: [[0.3, 16], [1, 17]],
-          timing: [0.3, 0, 0.9, 1],
-          duration: 5000 / speed,
-        },
-      }, {
-        // 拉起 
-        center: {
-          value: [121.500419, 31.238089],
-          control: [[121.49986267089844, 31.227628422210365], [121.49969100952148, 31.24025152837923]],
-          timing: [0.3, 0, 0.7, 1],
-          duration: 2000 / speed,
-        },
-        pitch: {
-          value: 0,
-          control: [[0, 0], [1, 100]],
-          timing: [0.1, 0, 0.7, 1],
-          duration: 2000 / speed,
-        },
-        rotation: {
-          value: 361,
-          control: [[0, 260], [1, 361]],
-          timing: [0.3, 0, 0.7, 1],
-          duration: 2000 / speed,
-        },
-        zoom: {
-          value: 13.8,
-          control: [[0, 17.5], [1, 13.8]],
-          timing: [0.3, 0, 0.7, 1],
-          duration: 2500 / speed,
-        },
-      }], function () {
-        pl.hide(1000);
-        console.log('结束');
-      });
-  });
-}
+//   // 下钻 
+//   loca.viewControl.addAnimates([{
+//     pitch: {
+//       value: 0,
+//       control: [[0, 20], [1, 0]],
+//       timing: [0, 0, 0.8, 1],
+//       duration: 3000 / speed,
+//     },
+//     zoom: {
+//       value: 15.9,
+//       control: [[0, 12.8], [1, 15.9]],
+//       timing: [0, 0, 0.8, 1],
+//       duration: 3000 / speed,
+//     },
+//     rotation: {
+//       value: -20,
+//       control: [[0, 20], [1, -20]],
+//       timing: [0, 0, 0.8, 1],
+//       duration: 2000 / speed,
+//     },
+//   }], function () {
+//     setTimeout(function () {
+//       pl.show(2000);
+//     }, 3000);
+
+//     loca.viewControl.addAnimates([
+//       // 寻迹 
+//       {
+//         center: {
+//           value: [121.500419, 31.238089],
+//           control: [[121.424503326416, 31.199146851153124], [121.46656036376952, 31.245828642661486]],
+//           timing: [0.3, 0, 0.1, 1],
+//           duration: 8000 / speed,
+//         },
+//         zoom: {
+//           value: 17,
+//           control: [[0.3, 15], [1, 17]],
+//           timing: [0.3, 0, 0.7, 1],
+//           duration: 4000 / speed,
+//         },
+//         pitch: {
+//           value: 50,
+//           control: [[0.3, 0], [1, 50]],
+//           timing: [0.3, 0, 1, 1],
+//           duration: 3000 / speed,
+//         },
+//         rotation: {
+//           value: -80,
+//           control: [[0, -20], [1, -80]],
+//           timing: [0, 0, 1, 1],
+//           duration: 1000 / speed,
+//         },
+//       }, {
+//         // 环绕 
+//         pitch: {
+//           value: 50,
+//           control: [[0, 40], [1, 50]],
+//           timing: [0.3, 0, 1, 1],
+//           duration: 7000 / speed,
+//         },
+//         rotation: {
+//           value: 260,
+//           control: [[0, -80], [1, 260]],
+//           timing: [0, 0, 0.7, 1],
+//           duration: 7000 / speed,
+//         },
+//         zoom: {
+//           value: 17,
+//           control: [[0.3, 16], [1, 17]],
+//           timing: [0.3, 0, 0.9, 1],
+//           duration: 5000 / speed,
+//         },
+//       }, {
+//         // 拉起 
+//         center: {
+//           value: [121.500419, 31.238089],
+//           control: [[121.49986267089844, 31.227628422210365], [121.49969100952148, 31.24025152837923]],
+//           timing: [0.3, 0, 0.7, 1],
+//           duration: 2000 / speed,
+//         },
+//         pitch: {
+//           value: 0,
+//           control: [[0, 0], [1, 100]],
+//           timing: [0.1, 0, 0.7, 1],
+//           duration: 2000 / speed,
+//         },
+//         rotation: {
+//           value: 361,
+//           control: [[0, 260], [1, 361]],
+//           timing: [0.3, 0, 0.7, 1],
+//           duration: 2000 / speed,
+//         },
+//         zoom: {
+//           value: 13.8,
+//           control: [[0, 17.5], [1, 13.8]],
+//           timing: [0.3, 0, 0.7, 1],
+//           duration: 2500 / speed,
+//         },
+//       }], function () {
+//         pl.hide(1000);
+//         console.log('结束');
+//       });
+//   });
+// }
 
 onMounted(() => {
   AMapLoader.load({
@@ -311,7 +308,7 @@ onMounted(() => {
       pl.setSource(geo); 
       pl.setStyle({ 
           topColor: '#111', 
-          height: function (index: number, feature: any) { 
+          height: function (_index: number, feature: any) { 
               return feature.properties.h; 
           }, 
           textureSize: [1000, 820], 
@@ -327,7 +324,7 @@ onMounted(() => {
 
       // --- 新增标点牌及相关图层 ---
       var markerGeo = new Loca.GeoJSONSource({ 
-          data: markerData
+          data: props.markerData
       }); 
 
       // 文字主体图层 
@@ -338,7 +335,7 @@ onMounted(() => {
       }); 
       zMarker.setSource(markerGeo); 
       zMarker.setStyle({ 
-          content: (i: number, feat: any) => { 
+          content: (_i: number, feat: any) => { 
               var props = feat.properties; 
               var leftColor = props.price < 60000 ? 'rgba(0, 28, 52, 0.6)' : 'rgba(33,33,33,0.6)'; 
               var rightColor = props.price < 60000 ? '#038684' : 'rgba(172, 137, 51, 0.3)'; 
@@ -370,7 +367,7 @@ onMounted(() => {
       }); 
       triangleZMarker.setSource(markerGeo); 
       triangleZMarker.setStyle({ 
-          content: (i: number, feat: any) => { 
+          content: (_i: number, feat: any) => { 
               return ( 
                   '<div style="width: 120px; height: 120px; background: url(https://a.amap.com/Loca/static/loca-v2/demos/images/triangle_' 
                   + (feat.properties.price < 60000 ? 'blue' : 'yellow') 
@@ -406,7 +403,7 @@ onMounted(() => {
       scatterBlue.setSource(markerGeo); 
       scatterBlue.setStyle({ 
           unit: 'meter', 
-          size: function (i: number, feat: any) { 
+          size: function (_i: number, feat: any) { 
               return feat.properties.price < 60000 ? [90, 90] : [0, 0]; 
           }, 
           texture: 'https://a.amap.com/Loca/static/loca-v2/demos/images/scan_blue.png', 
@@ -428,7 +425,7 @@ onMounted(() => {
       scatterYellow.setSource(markerGeo); 
       scatterYellow.setStyle({ 
           unit: 'meter', 
-          size: function (i: number, feat: any) { 
+          size: function (_i: number, feat: any) { 
               return feat.properties.price > 60000 ? [90, 90] : [0, 0]; 
           }, 
           texture: 'https://a.amap.com/Loca/static/loca-v2/demos/images/scan_yellow.png', 
