@@ -3,9 +3,6 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from typing import TypedDict
 import os
-import cv2
-import numpy as np
-import base64
 
 # 千文 视觉理解大模型推荐
 # qwen3.5-plus  qwen3-vl-plus  qwen-vl-max
@@ -22,42 +19,6 @@ class MessagesState(TypedDict):
     description: str
 
 
-def merge_base64_images(base64_img1: str, base64_img2: str, separator_width: int = 10, separator_color: tuple = (0, 0, 0)) -> str:
-    """
-    将两张base64编码的图片左右合并，中间加上分割线。
-    """
-    img1_data = base64.b64decode(base64_img1)
-    img2_data = base64.b64decode(base64_img2)
-    
-    nparr1 = np.frombuffer(img1_data, np.uint8)
-    nparr2 = np.frombuffer(img2_data, np.uint8)
-    
-    img1 = cv2.imdecode(nparr1, cv2.IMREAD_COLOR)
-    img2 = cv2.imdecode(nparr2, cv2.IMREAD_COLOR)
-    
-    if img1 is None or img2 is None:
-        raise ValueError("图片解码失败，请检查传入的Base64字符串")
-        
-    # 统一高度，以第一张图为准
-    h1, w1 = img1.shape[:2]
-    h2, w2 = img2.shape[:2]
-    
-    if h1 != h2:
-        ratio = h1 / float(h2)
-        new_w2 = int(w2 * ratio)
-        img2 = cv2.resize(img2, (new_w2, h1))
-        
-    # 创建分割线
-    separator = np.full((h1, separator_width, 3), separator_color, dtype=np.uint8)
-    
-    # 水平拼接
-    merged_img = np.hstack((img1, separator, img2))
-    
-    # 编码回Base64
-    _, buffer = cv2.imencode('.jpg', merged_img)
-    return base64.b64encode(buffer).decode('utf-8')
-
-
 def vl_llm_node(state: MessagesState):
     """
     调用千文视觉理解大模型
@@ -65,21 +26,18 @@ def vl_llm_node(state: MessagesState):
     context_info = ""
     if state.get("description"):
         context_info = f"\n\n### 项目背景与建筑信息：\n{state['description']}\n"
-        
-    # 合并两张图片为一张
-    merged_image_base64 = merge_base64_images(state['basic_image'], state['comparison_image'])
 
     response = model.stream(
         [
             SystemMessage(
                 content=f"""你是一位专业的政府建设资金拨付监管专家和资深建筑工程监理。你的核心职责是基于项目现场的视觉影像资料，结合项目申报信息，智能分析工程建设的实际进度，生成精准的监管报告，辅助财政部门进行资金拨款决策。
 
-你将收到一张合并后的图片，图片中间由分割线隔开，分为左右两部分：
-1. 左半部分图是【基准图/申报图】：可能是项目申报时提交的参考图、上一个阶段的进度图或项目规划效果图。
-2. 右半部分图是【事实图/现场图】：通过工地监控摄像头最新采集的现场实时图像。
+你将收到两张图片：
+1. 第一张图是【基准图/申报图】：可能是项目申报时提交的参考图、上一个阶段的进度图或项目规划效果图。
+2. 第二张图是【事实图/现场图】：通过工地监控摄像头最新采集的现场实时图像。
 {context_info}
 
-请根据这张合并图片，完成以下深度分析，并生成一份专业的《政府建设资金拨付监管与进度评估报告》。
+请根据这两张图片，完成以下深度分析，并生成一份专业的《政府建设资金拨付监管与进度评估报告》。
 
 ### 核心监管阶段（资金拨付节点）：
 请重点评估当前工程是否达到以下五个关键资金拨付节点之一：
@@ -136,7 +94,13 @@ def vl_llm_node(state: MessagesState):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{merged_image_base64}",
+                            "url": f"data:image/jpeg;base64,{state['basic_image']}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{state['comparison_image']}",
                         },
                     },
                 ]

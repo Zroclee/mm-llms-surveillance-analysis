@@ -32,6 +32,12 @@
 					<p>查看建筑三维地图与实时监控数据</p>
 					<button class="nav-btn">进入建筑大屏</button>
 				</div>
+
+				<div class="card satellite-card" @click="navigateTo('/satellite')">
+					<h2>卫星分析</h2>
+					<p>查看工程卫星地图及 AI 智能分析</p>
+					<button class="nav-btn">进入卫星分析</button>
+				</div>
 			</div>
 		</main>
 	</div>

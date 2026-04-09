@@ -36,6 +36,14 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       title: '建筑大屏'
     }
+  },
+  {
+    path: '/satellite',
+    name: 'SatelliteMap',
+    component: () => import('../views/SatelliteMap.vue'),
+    meta: {
+      title: '卫星地图分析'
+    }
   }
 ]
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from agents.agent_building import vl_llm_node, MessagesState
+from agents.agent_map import vl_llm_node as map_vl_llm_node, MessagesState as MapMessagesState
 import json
 import os
 import base64
@@ -15,6 +16,10 @@ class BuildingAnalysisRequest(BaseModel):
     basic_image_name: str  # Filename of the basic image
     comparison_image_name: str  # Filename of the comparison image
     description: str | None = None  # Description of the building
+
+class MapAnalysisRequest(BaseModel):
+    image_name: str  # Filename of the satellite map image
+    description: str | None = None  # Description of the project
 
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
@@ -53,6 +58,46 @@ async def stream_building_analysis(request: BuildingAnalysisRequest):
     def generate():
         # vl_llm_node returns an iterator of AIMessageChunk
         for chunk in vl_llm_node(state):
+            # Try to get reasoning content
+            reasoning = chunk.additional_kwargs.get("reasoning_content", "")
+            if reasoning:
+                yield f"data: {json.dumps({'reasoning': reasoning}, ensure_ascii=False)}\n\n"
+
+            if chunk.content:
+                # Format as SSE data
+                yield f"data: {json.dumps({'content': chunk.content}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@router.post("/map/stream")
+async def stream_map_analysis(request: MapAnalysisRequest):
+    """
+    Stream the satellite map analysis report.
+    """
+    # Define file paths
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # server/
+    files_dir = os.path.join(base_dir, "files")
+    
+    img_path = os.path.join(files_dir, request.image_name)
+    
+    # Check if file exists
+    if not os.path.exists(img_path):
+        raise HTTPException(status_code=404, detail=f"Image not found: {request.image_name}. Please upload the file first.")
+
+    try:
+        img_b64 = encode_image(img_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading image: {str(e)}")
+
+    state = MapMessagesState(
+        basic_image=img_b64,
+        description=request.description or ""
+    )
+
+    def generate():
+        # map_vl_llm_node returns an iterator of AIMessageChunk
+        for chunk in map_vl_llm_node(state):
             # Try to get reasoning content
             reasoning = chunk.additional_kwargs.get("reasoning_content", "")
             if reasoning:
