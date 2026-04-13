@@ -2,7 +2,11 @@
   <div class="satellite-monitor">
     <!-- 左侧地图区域 -->
     <div class="monitor-panel">
-      <SatelliteMapComponent ref="mapComponent" :center="selectedProjectCenter" :fence="selectedProjectFence" />
+      <SatelliteMapComponent
+        ref="mapComponent"
+        :center="selectedProjectCenter"
+        :fence="selectedProjectFence"
+      />
     </div>
 
     <!-- 右侧 AI 分析侧边栏 -->
@@ -47,13 +51,16 @@
             <div v-else class="markdown-content" v-html="formattedResult"></div>
           </div>
         </section>
-
       </div>
 
       <div class="sidebar-footer">
-        <button 
-          class="report-btn" 
-          :disabled="isAnalyzing || !analysisResult || analysisResult.includes('正在获取卫星云图截图')" 
+        <button
+          class="report-btn"
+          :disabled="
+            isAnalyzing ||
+            !analysisResult ||
+            analysisResult.includes('正在获取卫星云图截图')
+          "
           @click="generateReport"
         >
           📄 生成分析报告 (PDF)
@@ -88,32 +95,60 @@ const projects = [
       [114.109465, 22.539231],
       [114.108469, 22.539231],
     ] as [number, number][],
-    description: "当前工地属于蔡屋围城市更新项目一期子项目C区-燕贻学校，面积约 8,886.47 平方米，属于小学教育设施用地，位置为：罗湖区桂园街道书城路南侧，紧邻万象城三期，未来将为整个罗湖核心区带来重要的教育配套。",
+    description:
+      "当前工地属于蔡屋围城市更新项目一期子项目C区-燕贻学校，面积约 8,886.47 平方米，属于小学教育设施用地，位置为：罗湖区桂园街道书城路南侧，紧邻万象城三期，未来将为整个罗湖核心区带来重要的教育配套。",
   },
+  /**
+   * 真实信息：
+   * 上海市闵行区宝南路469弄宝悦璟庭小区
+   * 闵行区七宝镇闵行新城MHC10105单元08-07地块
+   * 主要技术经济指标：
+   * 用地面积：26185.50平方米
+   * 总建筑面积：71211.99平方米
+   * 其中地上建筑面积：50143.45平方米
+   * 地上计容建筑面积：47135.70平方米
+   * 地下建筑面积：21068.54平方米
+   * 容积率：1.8
+   * 绿地率：35%
+   */
   {
     id: "proj1",
-    name: "天健天骄",
-    center: [121.304018, 31.217688] as [number, number],
-    fence: [] as [number, number][],
-    description: "天健天骄高端住宅社区项目。占地面积约3.2万平方米，总建筑面积约15万平方米，主要建设高层住宅、配套商业及幼儿园。",
+    name: "闵行区动迁安置房项目",
+    center: [121.358919,31.150404] as [number, number],
+    fence: [
+      [121.35813, 31.150906],
+      [121.359487,31.151739],
+      [121.360165, 31.150816],
+      [121.359641, 31.150504],
+      [121.35988, 31.150125],
+      [121.359306,31.149777],
+      [121.359453,31.149594],
+      [121.359148,31.149487],
+      [121.359048,31.149608],
+      [121.358652, 31.149532],
+    ] as [number, number][],
+    description:
+      "上海市闵行区宝南路469弄宝悦璟庭小区，用地面积：26185.50平方米，属于住宅用地，动迁安置房",
   },
   {
     id: "proj2",
     name: "银康苑动迁安置房",
     center: [121.5043258, 31.2392241] as [number, number],
     fence: [] as [number, number][],
-    description: "银康苑动迁安置房工程。项目总建筑面积约8万平方米，由多栋高层住宅及地下车库组成，用于安置周边拆迁居民，提供完善的生活配套。",
+    description:
+      "银康苑动迁安置房工程。项目总建筑面积约8万平方米，由多栋高层住宅及地下车库组成，用于安置周边拆迁居民，提供完善的生活配套。",
   },
   {
     id: "proj3",
     name: "陆家嘴中心",
     center: [121.500419, 31.238089] as [number, number],
     fence: [] as [number, number][],
-    description: "陆家嘴核心区商业综合体项目。涵盖超高层写字楼、大型购物中心及高端酒店。总建筑面积超30万平方米，是区域内的地标性建筑。",
+    description:
+      "陆家嘴核心区商业综合体项目。涵盖超高层写字楼、大型购物中心及高端酒店。总建筑面积超30万平方米，是区域内的地标性建筑。",
   },
 ];
 
-const selectedProject = ref("proj0");
+const selectedProject = ref("proj1");
 const selectedProjectCenter = computed(() => {
   const proj = projects.find((p) => p.id === selectedProject.value);
   return (proj?.center || projects[0]?.center || [121.304018, 31.217688]) as [
@@ -142,7 +177,7 @@ const startAnalysis = async () => {
   analysisResult.value = "正在获取卫星云图截图，请稍候...\n";
 
   const currentProj = projects.find((p) => p.id === selectedProject.value);
-  
+
   if (!mapComponent.value) {
     analysisResult.value += "\n错误：地图组件未初始化。";
     isAnalyzing.value = false;
@@ -152,7 +187,7 @@ const startAnalysis = async () => {
   try {
     // 1. 截图
     const dataUrl = await mapComponent.value.captureMap();
-    
+
     // 2. 将 base64 转换为 Blob
     const res = await fetch(dataUrl);
     const blob = await res.blob();
@@ -174,21 +209,24 @@ const startAnalysis = async () => {
 
     const uploadData = await uploadResponse.json();
     const serverPath = uploadData.saved_path;
-    const uploadedFilename = serverPath.split('/').pop() || filename;
+    const uploadedFilename = serverPath.split("/").pop() || filename;
 
     // 4. 调用流式分析接口
     analysisResult.value = ""; // 清空提示，准备接收结果
-    
-    const analysisResponse = await fetch("http://localhost:8000/agent/map/stream", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+
+    const analysisResponse = await fetch(
+      "http://localhost:8000/agent/map/stream",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_name: uploadedFilename,
+          description: currentProj?.description || "",
+        }),
       },
-      body: JSON.stringify({
-        image_name: uploadedFilename,
-        description: currentProj?.description || "",
-      }),
-    });
+    );
 
     if (!analysisResponse.ok) {
       throw new Error(`分析请求失败: ${analysisResponse.statusText}`);
@@ -224,7 +262,6 @@ const startAnalysis = async () => {
         }
       }
     }
-
   } catch (error: any) {
     console.error("分析过程出错:", error);
     analysisResult.value += `\n**分析失败**: ${error.message}`;
@@ -234,24 +271,27 @@ const startAnalysis = async () => {
 };
 
 const generateReport = () => {
-  const element = document.querySelector('.markdown-content');
+  const element = document.querySelector(".markdown-content");
   if (!element || !analysisResult.value || isAnalyzing.value) {
-    alert('暂无完整分析结果可生成报告');
+    alert("暂无完整分析结果可生成报告");
     return;
   }
-  
+
   const currentProj = projects.find((p) => p.id === selectedProject.value);
-  const projName = currentProj?.name || '项目';
-  
+  const projName = currentProj?.name || "项目";
+
   const opt: any = {
-    margin:       10,
-    filename:     `${projName}_卫星云图评估报告_${new Date().toISOString().slice(0,10)}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    margin: 10,
+    filename: `${projName}_卫星云图评估报告_${new Date().toISOString().slice(0, 10)}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
 
-  html2pdf().set(opt).from(element as HTMLElement).save();
+  html2pdf()
+    .set(opt)
+    .from(element as HTMLElement)
+    .save();
 };
 </script>
 

@@ -59,3 +59,12 @@ pnpm run dev
 基于google地图的[水经注 GIS 地图](https://rivermap.cn/)
 
 高德的[坐标拾取器](https://lbs.amap.com/tools/picker)可以根据地址获取经纬度
+
+
+## 监控摄像头
+
+内网搭建 GB28181 SIP服务
+ 
+海康威视SDK
+
+已经接入海康互联，直接使用海康威视云服务 如何视频流接入内网？
