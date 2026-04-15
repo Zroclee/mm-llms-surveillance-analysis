@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
+    "ezuikit-js": "^8.2.7",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
     "markdown-it": "^14.1.1",
@@ -17,6 +18,7 @@
     "vue-router": "^5.0.2"
   },
   "devDependencies": {
+    "@types/ezuikit-js": "^8.0.0",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.2",
