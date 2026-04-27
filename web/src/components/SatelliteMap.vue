@@ -131,7 +131,7 @@ defineExpose({
 
 onMounted(() => {
   AMapLoader.load({
-    key: "383f3cc941db222b67078484daa7a58a", // 沿用原有的 Web 端开发者 Key
+    key: import.meta.env.VITE_GAODE_KEY, // 沿用原有的 Web 端开发者 Key
     version: "2.0", // 指定要加载的 JSAPI 的版本
     plugins: [], // 需要使用的的插件列表
   })
