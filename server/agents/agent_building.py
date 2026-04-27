@@ -7,7 +7,7 @@ import os
 # 千文 视觉理解大模型推荐
 # qwen3.5-plus  qwen3-vl-plus  qwen-vl-max
 model = ChatOpenAI(
-    model="qwen3.5-plus",
+    model="qwen3.6-plus",
     api_key=os.getenv("DASHSCOPE_API_KEY"),
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
 )

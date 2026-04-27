@@ -17,7 +17,7 @@
       <div class="monitor-view">
         <!-- 萤石云播放器容器 -->
         <div id="ezuikit-player" class="video-player-container"></div>
-        
+
         <div class="video-overlay">
           <div class="live-indicator">LIVE</div>
         </div>
@@ -159,13 +159,17 @@
             <div v-if="!analysisResult && isAnalyzing" class="typing-indicator">
               AI 正在思考...
             </div>
-            <div v-else class="markdown-content" style="white-space: pre-wrap;">{{ analysisResult }}</div>
+            <div v-else class="markdown-content" style="white-space: pre-wrap">
+              {{ analysisResult }}
+            </div>
           </div>
         </section>
       </div>
 
       <div class="sidebar-footer">
-        <button class="report-btn" @click="generateReport">📄 生成分析报告</button>
+        <button class="report-btn" @click="generateReport">
+          📄 生成分析报告
+        </button>
       </div>
     </div>
   </div>
@@ -187,7 +191,7 @@ onMounted(async () => {
     if (data.success) {
       initEzPlayer(data.accessToken, data.url);
     } else {
-      console.error("获取视频配置失败:", data.message); 
+      console.error("获取视频配置失败:", data.message);
     }
   } catch (error) {
     console.error("请求后端接口失败:", error);
@@ -204,7 +208,7 @@ onUnmounted(() => {
 const initEzPlayer = (accessToken: string, url: string) => {
   const wrapper = document.getElementById("ezuikit-player");
   if (!wrapper) return;
-  
+
   // 可以根据容器动态计算宽高，此处为了简单直接取父容器宽高或默认值
   const rect = wrapper.parentElement?.getBoundingClientRect();
   const width = rect?.width || 800;
@@ -221,6 +225,7 @@ const initEzPlayer = (accessToken: string, url: string) => {
     url,
     width,
     height,
+    template: "pcLive",
     handleSuccess: () => {
       console.log("播放成功");
     },
@@ -255,7 +260,10 @@ const setCurrentAnalysis = (frame: HistoryFrame) => {
   currentAnalysisFrame.value = frame;
 };
 
-const processCapturedBase64 = async (base64Data: string, isBaseline: boolean = false) => {
+const processCapturedBase64 = async (
+  base64Data: string,
+  isBaseline: boolean = false,
+) => {
   const now = new Date();
   const timeString = `今日 ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
   const filename = `capture_${Date.now()}.jpg`;
@@ -311,13 +319,14 @@ const captureFromPlayer = (isBaseline: boolean) => {
     alert("播放器未初始化或未就绪");
     return;
   }
-  
+
   // 使用 ezuikit 提供的 capturePicture 方法，回调获取 base64
-  myPlayer.capturePicture('default', (data: any) => {
-    let base64Data = typeof data === 'string' ? data : (data?.base64 || data?.data);
+  myPlayer.capturePicture("default", (data: any) => {
+    let base64Data =
+      typeof data === "string" ? data : data?.base64 || data?.data;
     if (base64Data) {
-      if (!base64Data.startsWith('data:')) {
-        base64Data = 'data:image/jpeg;base64,' + base64Data;
+      if (!base64Data.startsWith("data:")) {
+        base64Data = "data:image/jpeg;base64," + base64Data;
       }
       processCapturedBase64(base64Data, isBaseline);
     } else {
@@ -361,15 +370,16 @@ const startAnalysis = async () => {
     console.log("准备发送给大模型的参数:", {
       baseline: baselineFrame.value.filename,
       target: currentAnalysisFrame.value.filename,
-      prompt: analysisDescription.value
+      prompt: analysisDescription.value,
     });
 
     // 模拟接口请求和流式返回延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     analysisResult.value += "分析结果正在生成...\n";
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    analysisResult.value += "对比基准图和目标图发现如下变化：\n1. 画面整体正常\n2. 未见明显异常活动\n";
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    analysisResult.value +=
+      "对比基准图和目标图发现如下变化：\n1. 画面整体正常\n2. 未见明显异常活动\n";
 
     /*
     // 真实的 Fetch 请求示例代码：
@@ -385,7 +395,6 @@ const startAnalysis = async () => {
     
     // 如果是流式接口 (SSE)，可使用 reader 进行分块读取并拼接到 analysisResult.value 中
     */
-
   } catch (error) {
     analysisResult.value = `分析请求失败: ${error}`;
   } finally {
@@ -477,7 +486,8 @@ const generateReport = () => {
 }
 
 /* 修改 EZUIKit 内部的样式以适配容器 */
-:deep(#ezuikit-player video), :deep(#ezuikit-player canvas) {
+:deep(#ezuikit-player video),
+:deep(#ezuikit-player canvas) {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -617,8 +627,12 @@ const generateReport = () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .frame-img-wrapper img {

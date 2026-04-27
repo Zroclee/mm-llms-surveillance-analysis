@@ -47,7 +47,7 @@ def _get_qwen_model() -> ChatOpenAI:
     global _qwen_model
     if _qwen_model is None:
         _qwen_model = ChatOpenAI(
-            model="qwen3.5-plus",
+            model="qwen3.6-plus",
             api_key=os.getenv("DASHSCOPE_API_KEY"),
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
